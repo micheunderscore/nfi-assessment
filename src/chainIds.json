@@ -1,0 +1,22 @@
+{
+  "0x1": {
+    "decimal": 1,
+    "network": "Ethereum Main Network (Mainnet)"
+  },
+  "0x3": {
+    "decimal": 3,
+    "network": "Ropsten Test Network"
+  },
+  "0x4": {
+    "decimal": 4,
+    "network": "Rinkeby Test Network"
+  },
+  "0x5": {
+    "decimal": 5,
+    "network": "Goerli Test Network"
+  },
+  "0x2a": {
+    "decimal": 42,
+    "network": "Kovan Test Network"
+  }
+}
