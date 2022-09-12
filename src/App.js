@@ -1,25 +1,39 @@
 import { ethers } from "ethers";
+import { useMetaMask } from "metamask-react";
 import React, { useState } from "react";
 import "./App.css";
 import chainIds from "./chainIds.json";
 
 const App = () => {
+  const { ethereum } = useMetaMask();
+
   const [errorMessage, setErrorMessage] = useState("");
-  const [defaultAccount, setDefaultAccount] = useState(null);
+  const [defaultAccount, setDefaultAccount] = useState("");
   const [userBalance, setUserBalance] = useState("");
-  const [loading, setLoading] = useState({ address: false, balance: false });
   const [userChainId, setUserChainId] = useState("");
 
+  const reload = () => {
+    window.location.reload();
+  };
+
+  const resetErr = () => {
+    setErrorMessage("");
+  };
+
   const connectWalletHandler = () => {
-    if (window.ethereum) {
+    if (ethereum) {
       // metamask exists
-      setLoading({ ...loading, address: true });
-      window.ethereum
+      ethereum
         .request?.({
           method: "eth_requestAccounts",
         })
         .then((result) => {
-          accountChangedHandler(result[0]);
+          accountChangedHandler(result);
+          resetErr();
+        })
+
+        .catch((err) => {
+          setErrorMessage(`ERR_ACC: ${err.message}`);
         });
     } else {
       setErrorMessage("Please Install MetaMask");
@@ -27,58 +41,60 @@ const App = () => {
   };
 
   const accountChangedHandler = (newAccount) => {
-    setDefaultAccount(newAccount.toString());
-    getUserBalance(newAccount);
+    setDefaultAccount(newAccount[0].toString());
+    getUserBalance(newAccount[0]);
     getChainId();
-    setLoading({ ...loading, address: false });
+  };
+
+  const chainChangedHandler = () => {
+    // reload(); // Best Practice but disabled for purposes of demo
+    getChainId();
   };
 
   const getUserBalance = (address) => {
-    setLoading({ ...loading, balance: true });
-    window.ethereum
+    ethereum
       ?.request?.({ method: "eth_getBalance", params: [address, "latest"] })
       .then((balance) => {
         setUserBalance(ethers.utils.formatEther(balance));
-        setLoading({ ...loading, balance: false });
+        resetErr();
+      })
+      .catch((err) => {
+        setErrorMessage(`ERR_BAL: ${err.message}`);
       });
   };
 
   const getChainId = () => {
-    window.ethereum
+    ethereum
       ?.request?.({ method: "eth_chainId" })
-      .then((chainId) => setUserChainId(chainIds[chainId].network));
+      .then((chainId) => {
+        setUserChainId(chainIds[chainId].network);
+        resetErr();
+      })
+      .catch((err) => {
+        setErrorMessage(`ERR_CHA: ${err.message}`);
+      });
   };
 
-  const chainChangedHandler = () => {
-    window.location.reload();
-  };
+  ethereum?.on?.("accountsChanged", accountChangedHandler);
 
-  window.ethereum?.on?.("accountsChanged", accountChangedHandler);
+  ethereum?.on?.("chainChanged", chainChangedHandler);
 
-  window.ethereum?.on?.("chainChanged", chainChangedHandler);
+  ethereum?.on?.("disconnect", reload);
 
   return (
     <div className="App">
       <h4>Connection to MetaMask using window.ethereum method</h4>
       <button onClick={connectWalletHandler}>Connect Wallet</button>
       <div className="accountDisplay">
-        {!loading.address ? (
-          <h3>Address: {defaultAccount}</h3>
-        ) : (
-          <div className="loader"></div>
-        )}
+        <h3>Address: {defaultAccount}</h3>
       </div>
       <div className="balanceDisplay">
-        {!loading.balance ? (
-          <h3>Balance: {userBalance}</h3>
-        ) : (
-          <div className="loader"></div>
-        )}
+        <h3>Balance: {userBalance}</h3>
       </div>
       <div className="chainDisplay">
         <h3>Network: {userChainId}</h3>
       </div>
-      {errorMessage}
+      <p className="errMsg">{errorMessage}</p>
     </div>
   );
 };
